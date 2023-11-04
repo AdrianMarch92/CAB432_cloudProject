@@ -1,13 +1,15 @@
 import WebcamSelector from './cameraSelector';
 import CameraImages from './components/CameraImages';
-
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 function App() {
     return (
-        <div className="App">
-            <cameraSelector />
-            <h1>Welcome to the Camera Feed</h1>
-            <CameraImages />
-        </div>
+        <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<CameraImages />} />
+          <Route path="/selected-images" element={<CameraImages />} />
+          {/* other routes can go here */}
+        </Routes>
+      </BrowserRouter>
     );
 }
 

@@ -14,16 +14,11 @@ router.get('/', async (req, res) => {
         });
         const imageUrls = response.data.features.map(feature => feature.properties.image_url);
 
-        const cameraDetails = response.data.features.map(feature => {
-            return {
-                id: feature.properties.id,
-                description: feature.properties.description,
-                imageUrl: feature.properties.image_url
-            };
-        });
-        res.json(cameraDetails);
+        // Send the array of image URLs as a JSON response
+        res.json(imageUrls);
+
         response.data.features.forEach(feature => {
-            console.log(cameraDetails);
+            console.log(feature.properties.image_url);
         });
 
     } catch (err) {

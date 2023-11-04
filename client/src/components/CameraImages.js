@@ -1,29 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const CameraImages = () => {
-  const [imageUrls, setImageUrls] = useState([]);
+  const [cameras, setCameras] = useState([]);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchImageUrls = async () => {
+    const fetchCameras = async () => {
       try {
-        // Replace '/api/cameras' with the actual route to your Express backend
         const response = await axios.get('http://localhost:3001/');
-        setImageUrls(response.data); // Assuming the backend sends an array of image URLs
+        setCameras(response.data); // Update this to set the camera details
       } catch (error) {
-        console.error('Error fetching image URLs:', error);
+        console.error('Error fetching camera data:', error);
       }
     };
 
-    fetchImageUrls();
+    fetchCameras();
   }, []);
 
+  const handleSelectImage = (imageUrl) => {
+    setSelectedImages(prevSelectedImages =>
+      prevSelectedImages.includes(imageUrl)
+        ? prevSelectedImages.filter(image => image !== imageUrl)
+        : [...prevSelectedImages, imageUrl]
+    );
+  };
+
+  const handleViewSelected = () => {
+    navigate('/selected-images', { state: { selectedImages } }); // Make sure to pass the state properly
+  };
+
   return (
-    <div>
-      <h1>Camera Images</h1>
-      <div>
-        {imageUrls.map((url, index) => (
-          <img key={index} src={url} alt={`Camera ${index}`} />
+    <div className="container mt-4">
+      <h1 className="text-center mb-4">Queensland Traffic Webcams</h1>
+      <button onClick={handleViewSelected} className="btn btn-primary mb-3">
+        View Selected
+      </button>
+      <div className="row">
+        {cameras.map((camera, index) => (
+          <div key={index} className="col-sm-6 col-md-4 col-lg-3 mb-4">
+            <div className="card">
+              <img src={camera.imageUrl} className="card-img-top" alt={camera.description} />
+              <div className="card-body">
+                <h5 className="card-title">{camera.description}</h5>
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id={`camera-checkbox-${index}`}
+                    checked={selectedImages.includes(camera.imageUrl)}
+                    onChange={() => handleSelectImage(camera.imageUrl)}
+                  />
+                  <label className="form-check-label" htmlFor={`camera-checkbox-${index}`}>
+                    Select
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
     </div>
