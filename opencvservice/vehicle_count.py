@@ -8,6 +8,14 @@ import collections
 import numpy as np
 from tracker import *
 import urllib.request as ur
+import boto3
+import time
+
+# AWS credentials and region configuration
+AWS_ACCESS_KEY = 'accesskey'
+AWS_SECRET_KEY = 'secretkey'
+AWS_SESSION_TOKEN = 'token'
+AWS_REGION = 'ap-southeast-2'
 
 # Initialize Tracker
 tracker = EuclideanDistTracker()
@@ -205,11 +213,13 @@ def realTime():
     cap.release()
     cv2.destroyAllWindows()
 
-req = ur.urlopen('https://d2w9pjl8ozl6el.cloudfront.net/Gold_Coast/bundall-ashmore-south.jpg')
-arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
-img = cv2.imdecode(arr, -1) # 'Load it as it is'
-image_file = 'https://d2w9pjl8ozl6el.cloudfront.net/Gold_Coast/MRSCHD-297.jpg'
+
+#image_file = 'https://d2w9pjl8ozl6el.cloudfront.net/Metropolitan/Indooroopilly_Western_Fwy_Sth.jpg'
 def from_static_image(image):
+
+    req = ur.urlopen(image)
+    arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
+    img = cv2.imdecode(arr, -1) # 'Load it as it is'
     
 
     blob = cv2.dnn.blobFromImage(img, 1 / 255, (input_sizex, input_sizey), [0, 0, 0], 1, crop=False)
@@ -226,25 +236,68 @@ def from_static_image(image):
 
     # count the frequency of detected classes
     frequency = collections.Counter(detected_classNames)
-    print(frequency)
+    print("Car: " + str(frequency['car']))
+    print("Motorbike: " + str(frequency['motorbike']))
+    print("Bus: " + str(frequency['bus']))
+    print("Truck: " + str(frequency['truck']))
     # Draw counting texts in the frame
-    cv2.putText(img, "Car:        "+str(frequency['car']), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-    cv2.putText(img, "Motorbike:  "+str(frequency['motorbike']), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-    cv2.putText(img, "Bus:        "+str(frequency['bus']), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-    cv2.putText(img, "Truck:      "+str(frequency['truck']), (20, 100), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+    #cv2.putText(img, "Car:        "+str(frequency['car']), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+    #cv2.putText(img, "Motorbike:  "+str(frequency['motorbike']), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+    #cv2.putText(img, "Bus:        "+str(frequency['bus']), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+    #cv2.putText(img, "Truck:      "+str(frequency['truck']), (20, 100), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
 
 
-    cv2.imshow("image", img)
+    #cv2.imshow("image", img)
 
-    cv2.waitKey(0)
+    #cv2.waitKey(0)
 
     # save the data to a csv file
     with open("static-data.csv", 'a') as f1:
         cwriter = csv.writer(f1)
         cwriter.writerow([image, frequency['car'], frequency['motorbike'], frequency['bus'], frequency['truck']])
     f1.close()
+    return  frequency['car'], frequency['motorbike'], frequency['bus'], frequency['truck']
+
+
+
+# Initialize SQS client
+
+sqs = boto3.client('sqs', region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY, aws_session_token=AWS_SESSION_TOKEN
+)
+
+# URL of your SQS queue
+queue_url = 'https://sqs.ap-southeast-2.amazonaws.com/901444280953/cab432_team42'
+
+def process_message(message):
+    # Process the message data
+    id = message['MessageAttributes']['carmeraid']['StringValue']
+    url = message['MessageAttributes']['imageURL']['StringValue']
+    # Perform an action with the ID and URL from the message
+    print(f"Received message - ID: {id}, URL: {url}")
+    cars, mortorbikes, buses, trucks = from_static_image(url)
+   
+    # Implement your action here using the received ID and URL
+    print(f"Output values: cars - {cars}, mortorbikes- {mortorbikes}, buses - {buses}, trucks {trucks}")
+
 
 
 if __name__ == '__main__':
     # realTime()
-    from_static_image(image_file)
+    
+    while True:
+    # Long-poll for messages (20 seconds in this case)
+        response = sqs.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=1,
+            WaitTimeSeconds=20
+        )
+
+        if 'Messages' in response:
+            for message in response['Messages']:
+                process_message(message)
+                # Delete the message from the queue once processed
+                receipt_handle = message['ReceiptHandle']
+                sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+
+        # Add a delay before polling again to avoid making too many requests
+        time.sleep(10)  # Change the delay time as needed   

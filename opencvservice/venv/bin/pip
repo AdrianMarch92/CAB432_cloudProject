@@ -1,4 +1,4 @@
-#!/home/craigb/Documents/GitHub/CAB432_cloudProject/opencvservice/venv/bin/python3
+#!/home/craigb/Documents/GitHub/CAB432_cloudProject/opencvservice/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
