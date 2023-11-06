@@ -10,10 +10,10 @@ from tracker import *
 import urllib.request as ur
 import boto3
 import time
-
+import json
 # AWS credentials and region configuration
-AWS_ACCESS_KEY = 'accesskey'
-AWS_SECRET_KEY = 'secretkey'
+AWS_ACCESS_KEY = 'key'
+AWS_SECRET_KEY = 'key'
 AWS_SESSION_TOKEN = 'token'
 AWS_REGION = 'ap-southeast-2'
 
@@ -241,21 +241,21 @@ def from_static_image(image):
     print("Bus: " + str(frequency['bus']))
     print("Truck: " + str(frequency['truck']))
     # Draw counting texts in the frame
-    #cv2.putText(img, "Car:        "+str(frequency['car']), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-    #cv2.putText(img, "Motorbike:  "+str(frequency['motorbike']), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-    #cv2.putText(img, "Bus:        "+str(frequency['bus']), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
-    #cv2.putText(img, "Truck:      "+str(frequency['truck']), (20, 100), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+    # cv2.putText(img, "Car:        "+str(frequency['car']), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+    # cv2.putText(img, "Motorbike:  "+str(frequency['motorbike']), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+    # cv2.putText(img, "Bus:        "+str(frequency['bus']), (20, 80), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
+    # cv2.putText(img, "Truck:      "+str(frequency['truck']), (20, 100), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
 
 
-    #cv2.imshow("image", img)
+    # cv2.imshow("image", img)
 
-    #cv2.waitKey(0)
+    # cv2.waitKey(0)
 
     # save the data to a csv file
-    with open("static-data.csv", 'a') as f1:
-        cwriter = csv.writer(f1)
-        cwriter.writerow([image, frequency['car'], frequency['motorbike'], frequency['bus'], frequency['truck']])
-    f1.close()
+    #with open("static-data.csv", 'a') as f1:
+    #    cwriter = csv.writer(f1)
+    #    cwriter.writerow([image, frequency['car'], frequency['motorbike'], frequency['bus'], frequency['truck']])
+    #f1.close()
     return  frequency['car'], frequency['motorbike'], frequency['bus'], frequency['truck']
 
 
@@ -267,17 +267,45 @@ sqs = boto3.client('sqs', region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_K
 
 # URL of your SQS queue
 queue_url = 'https://sqs.ap-southeast-2.amazonaws.com/901444280953/cab432_team42'
+import sqlalchemy as sa
+engine = sa.create_engine('postgresql://<username>:<password>@localhost:5432/traffic')
 
+from sqlalchemy import text
 def process_message(message):
-    # Process the message data
-    id = message['MessageAttributes']['carmeraid']['StringValue']
-    url = message['MessageAttributes']['imageURL']['StringValue']
-    # Perform an action with the ID and URL from the message
-    print(f"Received message - ID: {id}, URL: {url}")
-    cars, mortorbikes, buses, trucks = from_static_image(url)
-   
-    # Implement your action here using the received ID and URL
-    print(f"Output values: cars - {cars}, mortorbikes- {mortorbikes}, buses - {buses}, trucks {trucks}")
+    cars = 0
+    mortorbikes = 0
+    buses = 0
+    trucks = 0
+    global detected_classNames
+    detected_classNames = []
+    global temp_up_list 
+    temp_up_list = []
+    global temp_down_list 
+    temp_down_list= []
+    try: 
+        messagejson = json.loads(message['Body'])
+        print(messagejson)
+        # Process the message data
+        id = messagejson['carmeraid']
+        url = messagejson['imageURL']
+        # Perform an action with the ID and URL from the message
+        print(f"Received message - ID: {id}, URL: {url}")
+        cars, mortorbikes, buses, trucks = from_static_image(url)
+    
+        # Implement your action here using the received ID and URL
+        print(f"Output values: cars - {cars}, mortorbikes- {mortorbikes}, buses - {buses}, trucks {trucks}")
+        with engine.connect() as connection:
+                    statement2 = f"insert into traffic.public.traffic_volume (cameraid, cars, buses, trucks, motorbikes) values('{id}','{cars}','{buses}','{trucks}','{mortorbikes}'); "
+                    connection.execute(text(statement2))
+                    connection.commit()
+
+                
+        return id
+    except:
+        print("Error processing ticket")
+
+    return 0
+    
 
 
 
@@ -285,19 +313,46 @@ if __name__ == '__main__':
     # realTime()
     
     while True:
+        
+
     # Long-poll for messages (20 seconds in this case)
         response = sqs.receive_message(
             QueueUrl=queue_url,
-            MaxNumberOfMessages=1,
-            WaitTimeSeconds=20
+            MaxNumberOfMessages=5,
+            WaitTimeSeconds=5
         )
+        #example message:
+        #        {"carmeraid":1,"imageURL":"https://d2w9pjl8ozl6el.cloudfront.net/Metropolitan/Indooroopilly_Western_Fwy_Sth.jpg"}
 
         if 'Messages' in response:
             for message in response['Messages']:
-                process_message(message)
+                id = process_message(message)
                 # Delete the message from the queue once processed
                 receipt_handle = message['ReceiptHandle']
-                sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
+                sqs.delete_message(QueueUrl=queue_url
+                , ReceiptHandle=receipt_handle)
+                #creating a new ticket 
+                #todo: add check to either db or cache for if cameraid is still enabled 
+                with engine.connect() as connection:
+                    id = 1
+                    statement = f"SELECT status FROM traffic.public.camera_config where cameraid ='{id}' "
+                    rs = connection.execute(text(statement))
+                    assumedtrue = True
+                    
+
+                    for row in rs:
+
+                        if row[0] == True:
+                            print("true")                    
+                            sendresponse = sqs.send_message(
+                                QueueUrl=queue_url,
+                                DelaySeconds=90,
+                                MessageBody=(message['Body'])
+
+                            )
+                            print("Message: " + sendresponse['MessageId'])
+                        else:
+                            print("Ending abusive cycle.")
 
         # Add a delay before polling again to avoid making too many requests
         time.sleep(10)  # Change the delay time as needed   

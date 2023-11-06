@@ -28,7 +28,7 @@ const WebcamSelector = () => {
     };
 
     const handleSubmit = () => {
-        axios.post('/submit-cameras', { selectedCameras })
+        axios.post('/activate-cameras', { selectedCameras })
             .then(response => {
                 console.log("Selected cameras:", response.data);
             })
@@ -51,7 +51,9 @@ const WebcamSelector = () => {
                         {camera.name}
                     </div>
                 ))}
-                <button type="submit">Submit</button>
+                <div>
+                <button type="submit">Enable Cameras</button>
+                </div>
             </form>
         </div>
     );

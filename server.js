@@ -3,7 +3,10 @@ const axios = require('axios');
 const cors = require('cors');
 const { exec } = require('child_process');
 const router = express.Router();
-
+const options = require('./knexfile');
+const knex = require('knex')(options);
+const hardResetrouter = require('./routes/hardreset');
+const logger = require('morgan');
 
 module.exports = router;
 
@@ -12,6 +15,14 @@ const app = express();
 const PORT = 3001;
 
 app.use(cors());
+app.use(express.json());
+app.use((req, res, next) => {
+    req.db = knex;
+    next();
+
+});
+app.use(logger('combined'));
+app.use('/hardreset', hardResetrouter);
 
 app.get('/vehicle-count/:imageUrl', (req, res) => {
     const imageUrl = req.params.imageUrl;
