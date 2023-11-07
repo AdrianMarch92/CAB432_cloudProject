@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "aws-sdk": "^2.1489.0",
     "axios": "^1.6.0",
     "boto": "^0.0.1",
     "boto3": "^0.0.1",
@@ -8,6 +9,7 @@
     "knex": "^3.0.1",
     "morgan": "^1.10.0",
     "pg": "^8.11.3",
-    "react-router-dom": "^6.17.0"
+    "react-router-dom": "^6.17.0",
+    "redis": "^4.6.10"
   }
 }

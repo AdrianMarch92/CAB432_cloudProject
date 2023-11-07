@@ -7,27 +7,23 @@ var router = express.Router();
 
 router.get('/', async (req, res, _) => {
     try {
-        Promise.all(
-            [
-            req.db.raw('TRUNCATE TABLE traffic.public.traffic_volume CASCADE'),
-            req.db.raw('TRUNCATE TABLE traffic.public.camera_config CASCADE'),
-
-            ]
-
-        )
-        
-        res.json({"message": "Complete"});
-
-        
-        
-
-
-    } catch (err) {
+        const truncateDbPromise = Promise.all([
+          req.db.raw('TRUNCATE TABLE traffic.public.traffic_volume CASCADE'),
+          req.db.raw('TRUNCATE TABLE traffic.public.camera_config CASCADE')
+        ]);
+    
+        const flushRedisPromise = req.redis.FLUSHALL();
+    
+        await Promise.all([truncateDbPromise, flushRedisPromise]);
+    
+        res.json({ message: 'Tables truncated in database and Redis flushed.' });
+      } catch (err) {
+        console.error(err); // Log the error for debugging
         res.status(500).send(err);
-    }
-    
+      }
 
-    
+
+
 });
 
 

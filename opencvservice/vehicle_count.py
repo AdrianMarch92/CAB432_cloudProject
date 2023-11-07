@@ -12,9 +12,9 @@ import boto3
 import time
 import json
 # AWS credentials and region configuration
-AWS_ACCESS_KEY = 'key'
-AWS_SECRET_KEY = 'key'
-AWS_SESSION_TOKEN = 'token'
+AWS_ACCESS_KEY = 'placeholder'
+AWS_SECRET_KEY = 'placeholder'
+AWS_SESSION_TOKEN = 'placeholder'
 AWS_REGION = 'ap-southeast-2'
 
 # Initialize Tracker
@@ -268,7 +268,7 @@ sqs = boto3.client('sqs', region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_K
 # URL of your SQS queue
 queue_url = 'https://sqs.ap-southeast-2.amazonaws.com/901444280953/cab432_team42'
 import sqlalchemy as sa
-engine = sa.create_engine('postgresql://<username>:<password>@localhost:5432/traffic')
+engine = sa.create_engine('postgresql://placeholder:placeholder@localhost:5432/traffic')
 
 from sqlalchemy import text
 def process_message(message):
@@ -334,7 +334,7 @@ if __name__ == '__main__':
                 #creating a new ticket 
                 #todo: add check to either db or cache for if cameraid is still enabled 
                 with engine.connect() as connection:
-                    id = 1
+                    #id = 1
                     statement = f"SELECT status FROM traffic.public.camera_config where cameraid ='{id}' "
                     rs = connection.execute(text(statement))
                     assumedtrue = True

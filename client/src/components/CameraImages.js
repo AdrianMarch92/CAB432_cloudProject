@@ -7,6 +7,7 @@ const CameraImages = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const navigate = useNavigate();
 
+
   useEffect(() => {
     const fetchCameras = async () => {
       try {
@@ -53,6 +54,7 @@ const CameraImages = () => {
                     checked={selectedImages.includes(camera.imageUrl)}
                     onChange={() => handleSelectImage(camera.imageUrl)}
                   />
+                 
                   <label className="form-check-label" htmlFor={`camera-checkbox-${index}`}>
                     Select
                   </label>

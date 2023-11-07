@@ -3,6 +3,7 @@ CREATE SCHEMA public AUTHORIZATION pg_database_owner;
 CREATE TABLE public.camera_config (
 	cameraid int4 NOT NULL,
 	status bool NULL DEFAULT false,
+	imageurl varchar NULL,
 	CONSTRAINT camera_config_un UNIQUE (cameraid)
 );
 CREATE TABLE public.traffic_volume (

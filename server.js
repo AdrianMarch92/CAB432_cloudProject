@@ -7,6 +7,7 @@ const options = require('./knexfile');
 const knex = require('knex')(options);
 const hardResetrouter = require('./routes/hardreset');
 const logger = require('morgan');
+const redis = require('redis');
 
 module.exports = router;
 
@@ -18,6 +19,20 @@ app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
     req.db = knex;
+    next();
+
+});
+const redisClient = redis.createClient();
+(async () => {
+    try {
+      await  redisClient.connect();  
+    } catch (err) {
+      console.log(err);
+    }
+})();
+
+app.use((req, res, next) => {
+    req.redis = redisClient;
     next();
 
 });
@@ -36,6 +51,8 @@ app.get('/vehicle-count/:imageUrl', (req, res) => {
     });
 });
 const indexRouter = require('./routes/index');
+const monitorRouter = require('./routes/monitor');
+app.use('/monitor', monitorRouter);
 app.use('/', indexRouter);
 
 app.listen(PORT, () => {

@@ -8,8 +8,8 @@ module.exports = {
     connection: {
         host : '127.0.0.1',
         port : 5432,
-        user : 'username',
-        password : 'pw',
+        user : 'placeholder',
+        password : 'placeholder',
         database : 'traffic'
     }
 };
