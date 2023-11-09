@@ -1,5 +1,6 @@
 import React from 'react';
 const DataDisplay = ({ data }) => {
+  //simple bootstrap themed table that maps the data props to a table. 
     return (
       <div className="container mt-4">
         <h2>Data Table</h2>

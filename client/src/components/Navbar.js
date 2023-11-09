@@ -1,4 +1,5 @@
 const Navbar = () => {
+  //straight forward navbar for simple navigation. 
     return (
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
         <div className="container">

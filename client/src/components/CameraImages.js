@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+
+//pretty sure this is all depreciated but leaving it in because it was what I used to extend into the newCameraView
 const CameraImages = () => {
   const [cameras, setCameras] = useState([]);
   const [selectedImages, setSelectedImages] = useState([]);

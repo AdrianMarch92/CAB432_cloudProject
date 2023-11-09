@@ -240,6 +240,10 @@ def from_static_image(image):
     print("Motorbike: " + str(frequency['motorbike']))
     print("Bus: " + str(frequency['bus']))
     print("Truck: " + str(frequency['truck']))
+
+    ##
+    ###I have made changes to this base example to return the values and not draw the image. 
+    ##
     # Draw counting texts in the frame
     # cv2.putText(img, "Car:        "+str(frequency['car']), (20, 40), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
     # cv2.putText(img, "Motorbike:  "+str(frequency['motorbike']), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, font_size, font_color, font_thickness)
@@ -260,6 +264,8 @@ def from_static_image(image):
 
 
 
+
+############## Have added the handling from SQS and db work. 
 # Initialize SQS client
 
 sqs = boto3.client('sqs', region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY, aws_session_token=AWS_SESSION_TOKEN
@@ -267,11 +273,16 @@ sqs = boto3.client('sqs', region_name=AWS_REGION, aws_access_key_id=AWS_ACCESS_K
 
 # URL of your SQS queue
 queue_url = 'https://sqs.ap-southeast-2.amazonaws.com/901444280953/cab432_team42'
+
+# initialise database
 import sqlalchemy as sa
-engine = sa.create_engine('postgresql://placeholder:placeholder@localhost:5432/traffic')
+engine = sa.create_engine('postgresql://placeholder:placeholder@cloudproject-team42.ce2haupt2cta.ap-southeast-2.rds.amazonaws.com:5432/traffic')
 
 from sqlalchemy import text
+
+# Where the magic happens
 def process_message(message):
+    # hard reset past totals. 
     cars = 0
     mortorbikes = 0
     buses = 0
@@ -285,21 +296,22 @@ def process_message(message):
     try: 
         messagejson = json.loads(message['Body'])
         print(messagejson)
-        # Process the message data
+        # Process the message data get the id and image url
         id = messagejson['carmeraid']
         url = messagejson['imageURL']
-        # Perform an action with the ID and URL from the message
+       
         print(f"Received message - ID: {id}, URL: {url}")
+        # Performs the count returning the values. 
         cars, mortorbikes, buses, trucks = from_static_image(url)
     
-        # Implement your action here using the received ID and URL
+        # stores the data into the database. 
         print(f"Output values: cars - {cars}, mortorbikes- {mortorbikes}, buses - {buses}, trucks {trucks}")
         with engine.connect() as connection:
                     statement2 = f"insert into traffic.public.traffic_volume (cameraid, cars, buses, trucks, motorbikes) values('{id}','{cars}','{buses}','{trucks}','{mortorbikes}'); "
                     connection.execute(text(statement2))
                     connection.commit()
 
-                
+        # returns the id.
         return id
     except:
         print("Error processing ticket")
@@ -310,12 +322,14 @@ def process_message(message):
 
 
 if __name__ == '__main__':
+    #Starts the service on an infinite loop
+    # uncomment this if the camers were live feeds. 
     # realTime()
     
     while True:
         
 
-    # Long-poll for messages (20 seconds in this case)
+    # poll sqs for 5 seconds pulling 5 tickets at a time. 
         response = sqs.receive_message(
             QueueUrl=queue_url,
             MaxNumberOfMessages=5,
@@ -335,15 +349,20 @@ if __name__ == '__main__':
                 #todo: add check to either db or cache for if cameraid is still enabled 
                 with engine.connect() as connection:
                     #id = 1
+                    # Checks if the camera monitoring is enabled in the database or disabled. 
                     statement = f"SELECT status FROM traffic.public.camera_config where cameraid ='{id}' "
                     rs = connection.execute(text(statement))
+                    #will assume it is until told otherwise. great for testing. 
                     assumedtrue = True
                     
-
                     for row in rs:
 
                         if row[0] == True:
-                            print("true")                    
+                            print("true")   
+                            # We send with a delay the rational behind the delay is that as per the QLD Traffic API 
+                            # documentation the images are refreshed every 60 seconds. 
+                            # We could have used 30 seconds but chose 90 to give a buffer. 
+                            # Our scaling will be based on the number of messages currently delayed this gives us an idea of how many are coming.                  
                             sendresponse = sqs.send_message(
                                 QueueUrl=queue_url,
                                 DelaySeconds=90,
@@ -354,5 +373,5 @@ if __name__ == '__main__':
                         else:
                             print("Ending abusive cycle.")
 
-        # Add a delay before polling again to avoid making too many requests
-        time.sleep(10)  # Change the delay time as needed   
+        # Add a delay before polling again to avoid making too many calls to the sqs service
+        time.sleep(10)  

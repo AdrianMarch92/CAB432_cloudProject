@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import NewCameraView from './components/NewCameraView';
 import CameraDetails from './components/CameraDetails';
 function App() {
+  //simple routing with react.
     return (
         <BrowserRouter>
         <Routes>

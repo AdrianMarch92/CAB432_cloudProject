@@ -7,11 +7,12 @@ import DataDisplay from './DataDisplay'
 const CameraDetails = () => {
   const [data, setData] = useState(null);
   const { id } = useParams(); // Gets the ID from the URL params 
-  const [rowData, setRowData] = useState(null);
+  const [rowData, setRowData] = useState(null); // row data starts off as a null object
+  //getches the data to redner on the page, this should be a cached version of the data from the qld traffic api. 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`http://localhost:3001/monitor/${id}`); 
+        const response = await axios.get(`http://ec2-3-104-65-218.ap-southeast-2.compute.amazonaws.com:3001/monitor/${id}`); 
         setData(response.data);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -20,9 +21,11 @@ const CameraDetails = () => {
 
     fetchData();
   }, [id]); 
+
+  //when the button is pressed we return all of the detailed data as row data. 
   const handleEnableSelected = () => {
     
-    axios.get(`http://localhost:3001/monitor/${id}/data`)
+    axios.get(`http://ec2-3-104-65-218.ap-southeast-2.compute.amazonaws.com:3001/monitor/${id}/data`)
             .then(response => {
                 console.log("Selected cameras:", response.data);
                 setRowData(response.data);
@@ -41,8 +44,9 @@ const CameraDetails = () => {
     <div className='maincontainer'>
       <Navbar />
       
-
-      {data ? (
+      {
+      //turnery so if the data is loaded it shows otherwise the user gets loading text.
+      data ? (
         <div>
               
          <div id='main' className="container mt-4">
@@ -76,6 +80,7 @@ const CameraDetails = () => {
       </button>
       </div>
           {
+            //after fetching the data we then pass it to datadisplay which maps the data as a table using bootstrap convetntions
             rowData?
             <><DataDisplay data={rowData} /></>
             :

@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+//pretty sure this is depreciated. put it down to tech dept and a jira ticket should be raised to refactor and cleanup code base. 
+
 const WebcamSelector = () => {
     const [cameras, setCameras] = useState([]);
     const [selectedCameras, setSelectedCameras] = useState([]);
